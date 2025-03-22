@@ -10,7 +10,8 @@ import {
   CreditCard, 
   Settings, 
   Menu, 
-  ChevronLeft
+  ChevronLeft,
+  BadgeDollarSign
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -29,6 +30,11 @@ const navItems = [
     name: "Inventory", 
     path: "/inventory", 
     icon: <Package className="h-5 w-5" /> 
+  },
+  {
+    name: "Loans",
+    path: "/loans",
+    icon: <BadgeDollarSign className="h-5 w-5" />
   },
   { 
     name: "Users", 
