@@ -1,86 +1,19 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FileText, WalletIcon, BadgeDollarSign, Search, HandCoins } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import LoanDetailsDialog from "@/components/loans/LoanDetailsDialog";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-// Mock data for loans - ensuring status is one of the union types in Loan
-const loansMockData = [
-  { 
-    id: 1, 
-    customerName: "Jane Smith", 
-    amount: 500, 
-    issuedDate: "2023-05-15", 
-    dueDate: "2023-06-15", 
-    status: "Active" as const,
-    paymentsMade: 0,
-    totalPayments: 2,
-    interestRate: 5,
-    phone: "555-1234",
-    notes: "Regular customer, first loan"
-  },
-  { 
-    id: 2, 
-    customerName: "John Doe", 
-    amount: 1200, 
-    issuedDate: "2023-04-10", 
-    dueDate: "2023-07-10", 
-    status: "Active" as const,
-    paymentsMade: 1,
-    totalPayments: 3,
-    interestRate: 5,
-    phone: "555-5678",
-    notes: "Grocery supplier"
-  },
-  { 
-    id: 3, 
-    customerName: "Alice Johnson", 
-    amount: 300, 
-    issuedDate: "2023-03-20", 
-    dueDate: "2023-04-20", 
-    status: "Overdue" as const,
-    paymentsMade: 0,
-    totalPayments: 1,
-    interestRate: 5,
-    phone: "555-9012",
-    notes: "First-time customer"
-  },
-  { 
-    id: 4, 
-    customerName: "Robert Chen", 
-    amount: 850, 
-    issuedDate: "2023-05-01", 
-    dueDate: "2023-08-01", 
-    status: "Active" as const,
-    paymentsMade: 1,
-    totalPayments: 3,
-    interestRate: 5,
-    phone: "555-3456",
-    notes: "Regular customer"
-  },
-  { 
-    id: 5, 
-    customerName: "Maria Garcia", 
-    amount: 600, 
-    issuedDate: "2023-02-15", 
-    dueDate: "2023-05-15", 
-    status: "Completed" as const,
-    paymentsMade: 3,
-    totalPayments: 3,
-    interestRate: 5,
-    phone: "555-7890",
-    notes: "Prompt payments"
-  }
-];
+// Define the API base URL
+const API_BASE_URL = "/api";
 
 export type Loan = {
   id: number;
@@ -96,22 +29,104 @@ export type Loan = {
   notes: string;
 };
 
+type LoanStats = {
+  activeLoans: number;
+  overdueLoans: number;
+  completedLoans: number;
+  totalOutstanding: number;
+};
+
+// API functions
+const fetchLoans = async (): Promise<Loan[]> => {
+  const response = await fetch(`${API_BASE_URL}/loans`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch loans');
+  }
+  return response.json();
+};
+
+const fetchLoansByStatus = async (status: string): Promise<Loan[]> => {
+  if (status === 'all') {
+    return fetchLoans();
+  }
+  const response = await fetch(`${API_BASE_URL}/loans/by-status/${status}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch ${status} loans`);
+  }
+  return response.json();
+};
+
+const fetchLoanStats = async (): Promise<LoanStats> => {
+  const response = await fetch(`${API_BASE_URL}/loans/stats`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch loan stats');
+  }
+  return response.json();
+};
+
+const recordLoanPayment = async (loanId: number): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/loans/${loanId}/payment`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ amount: 0 }), // API only needs to know a payment was made
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to record payment');
+  }
+  return response.json();
+};
+
 export default function Loans() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [loans, setLoans] = useState<Loan[]>(loansMockData);
   const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
+  
+  const queryClient = useQueryClient();
 
-  const filteredLoans = loans.filter(loan => 
+  // Fetch all loans
+  const { data: loans = [], isLoading, error } = useQuery({
+    queryKey: ['loans'],
+    queryFn: fetchLoans,
+  });
+
+  // Fetch loans by status
+  const { data: statusLoans = [] } = useQuery({
+    queryKey: ['loans', 'status', activeTab],
+    queryFn: () => fetchLoansByStatus(activeTab),
+    enabled: activeTab !== 'all', // Only run this query if not on 'all' tab
+  });
+
+  // Fetch loan stats
+  const { data: loanStats } = useQuery({
+    queryKey: ['loanStats'],
+    queryFn: fetchLoanStats,
+  });
+
+  // Record payment mutation
+  const recordPaymentMutation = useMutation({
+    mutationFn: recordLoanPayment,
+    onSuccess: () => {
+      toast.success("Payment recorded successfully");
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+      queryClient.invalidateQueries({ queryKey: ['loans', 'status'] });
+      queryClient.invalidateQueries({ queryKey: ['loanStats'] });
+    },
+    onError: (error) => {
+      toast.error(`Payment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  });
+
+  // Filter loans based on search term
+  const filteredLoans = (activeTab === 'all' ? loans : statusLoans).filter(loan => 
     loan.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     loan.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
     loan.amount.toString().includes(searchTerm)
   );
-
-  const tabFilteredLoans = activeTab === "all" 
-    ? filteredLoans 
-    : filteredLoans.filter(loan => loan.status.toLowerCase() === activeTab.toLowerCase());
 
   const viewLoanDetails = (loan: Loan) => {
     setSelectedLoan(loan);
@@ -119,26 +134,18 @@ export default function Loans() {
   };
 
   const handleRecordPayment = (loanId: number) => {
-    // In a real app, this would call an API to record the payment
-    setLoans(prevLoans => 
-      prevLoans.map(loan => 
-        loan.id === loanId && loan.paymentsMade < loan.totalPayments 
-          ? { 
-              ...loan, 
-              paymentsMade: loan.paymentsMade + 1,
-              status: loan.paymentsMade + 1 === loan.totalPayments ? "Completed" : "Active"
-            } 
-          : loan
-      )
-    );
-    
-    toast.success("Payment recorded successfully");
+    recordPaymentMutation.mutate(loanId);
   };
 
   const handleCreateNewLoan = () => {
     toast.info("New loan creation would open a form here");
     // In a real app, this would open a form to create a new loan
   };
+
+  // If there's an error fetching loans
+  if (error) {
+    toast.error(`Error fetching loans: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 
   return (
     <div className="animate-fade-in">
@@ -157,7 +164,7 @@ export default function Loans() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              {loans.filter(loan => loan.status === "Active").length}
+              {loanStats?.activeLoans || 0}
             </p>
           </CardContent>
         </Card>
@@ -170,10 +177,7 @@ export default function Loans() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              ${loans
-                .filter(loan => loan.status !== "Completed")
-                .reduce((sum, loan) => sum + loan.amount * (loan.totalPayments - loan.paymentsMade) / loan.totalPayments, 0)
-                .toFixed(2)}
+              ${loanStats?.totalOutstanding?.toFixed(2) || '0.00'}
             </p>
           </CardContent>
         </Card>
@@ -186,7 +190,7 @@ export default function Loans() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-red-500">
-              {loans.filter(loan => loan.status === "Overdue").length}
+              {loanStats?.overdueLoans || 0}
             </p>
           </CardContent>
         </Card>
@@ -199,7 +203,7 @@ export default function Loans() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-green-500">
-              {loans.filter(loan => loan.status === "Completed").length}
+              {loanStats?.completedLoans || 0}
             </p>
           </CardContent>
         </Card>
@@ -226,74 +230,80 @@ export default function Loans() {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="mb-4">
                 <TabsTrigger value="all">All Loans</TabsTrigger>
-                <TabsTrigger value="active">Active</TabsTrigger>
-                <TabsTrigger value="overdue">Overdue</TabsTrigger>
-                <TabsTrigger value="completed">Completed</TabsTrigger>
+                <TabsTrigger value="Active">Active</TabsTrigger>
+                <TabsTrigger value="Overdue">Overdue</TabsTrigger>
+                <TabsTrigger value="Completed">Completed</TabsTrigger>
               </TabsList>
               
               <TabsContent value={activeTab} className="m-0">
-                <ScrollArea className="h-[calc(100vh-400px)]">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Issued Date</TableHead>
-                        <TableHead>Due Date</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Payments</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {tabFilteredLoans.length === 0 ? (
+                {isLoading ? (
+                  <div className="flex justify-center items-center p-8">
+                    <p>Loading loans...</p>
+                  </div>
+                ) : (
+                  <ScrollArea className="h-[calc(100vh-400px)]">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                            No loans found
-                          </TableCell>
+                          <TableHead>Customer</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Issued Date</TableHead>
+                          <TableHead>Due Date</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Payments</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ) : (
-                        tabFilteredLoans.map(loan => (
-                          <TableRow key={loan.id}>
-                            <TableCell className="font-medium">{loan.customerName}</TableCell>
-                            <TableCell>${loan.amount.toFixed(2)}</TableCell>
-                            <TableCell>{loan.issuedDate}</TableCell>
-                            <TableCell>{loan.dueDate}</TableCell>
-                            <TableCell>
-                              <span 
-                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                  loan.status === 'Active' ? 'bg-blue-100 text-blue-800' : 
-                                  loan.status === 'Overdue' ? 'bg-red-100 text-red-800' : 
-                                  'bg-green-100 text-green-800'
-                                }`}
-                              >
-                                {loan.status}
-                              </span>
-                            </TableCell>
-                            <TableCell>{loan.paymentsMade} of {loan.totalPayments}</TableCell>
-                            <TableCell className="text-right">
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="mr-2"
-                                onClick={() => viewLoanDetails(loan)}
-                              >
-                                Details
-                              </Button>
-                              <Button 
-                                size="sm"
-                                disabled={loan.status === "Completed" || loan.paymentsMade >= loan.totalPayments}
-                                onClick={() => handleRecordPayment(loan.id)}
-                              >
-                                Record Payment
-                              </Button>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredLoans.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                              No loans found
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
+                        ) : (
+                          filteredLoans.map(loan => (
+                            <TableRow key={loan.id}>
+                              <TableCell className="font-medium">{loan.customerName}</TableCell>
+                              <TableCell>${loan.amount.toFixed(2)}</TableCell>
+                              <TableCell>{loan.issuedDate}</TableCell>
+                              <TableCell>{loan.dueDate}</TableCell>
+                              <TableCell>
+                                <span 
+                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    loan.status === 'Active' ? 'bg-blue-100 text-blue-800' : 
+                                    loan.status === 'Overdue' ? 'bg-red-100 text-red-800' : 
+                                    'bg-green-100 text-green-800'
+                                  }`}
+                                >
+                                  {loan.status}
+                                </span>
+                              </TableCell>
+                              <TableCell>{loan.paymentsMade} of {loan.totalPayments}</TableCell>
+                              <TableCell className="text-right">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="mr-2"
+                                  onClick={() => viewLoanDetails(loan)}
+                                >
+                                  Details
+                                </Button>
+                                <Button 
+                                  size="sm"
+                                  disabled={loan.status === "Completed" || loan.paymentsMade >= loan.totalPayments}
+                                  onClick={() => handleRecordPayment(loan.id)}
+                                >
+                                  Record Payment
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                )}
               </TabsContent>
             </Tabs>
           </CardContent>

@@ -1,3 +1,4 @@
+
 // In-memory database for this demo
 // In a real application, you would use a proper database like MongoDB or PostgreSQL
 let loans = [

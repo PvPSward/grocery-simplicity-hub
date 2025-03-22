@@ -11,6 +11,9 @@ import {
 import { type Loan } from "@/pages/Loans";
 import { Separator } from "@/components/ui/separator";
 import { BadgeDollarSign, Calendar, Phone, FileText } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface LoanDetailsDialogProps {
   loan: Loan;
@@ -23,6 +26,42 @@ export default function LoanDetailsDialog({
   open,
   onOpenChange,
 }: LoanDetailsDialogProps) {
+  const queryClient = useQueryClient();
+  
+  // Record payment mutation
+  const recordPaymentMutation = useMutation({
+    mutationFn: async (loanId: number) => {
+      const response = await fetch(`/api/loans/${loanId}/payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ amount: 0 }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to record payment');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success("Payment recorded successfully");
+      // Close the dialog
+      onOpenChange(false);
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+      queryClient.invalidateQueries({ queryKey: ['loans', 'status'] });
+      queryClient.invalidateQueries({ queryKey: ['loanStats'] });
+    },
+    onError: (error) => {
+      toast.error(`Payment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  });
+
+  const handleRecordPayment = () => {
+    recordPaymentMutation.mutate(loan.id);
+  };
+
   const calculateRemainingAmount = () => {
     const totalAmount = loan.amount * (1 + loan.interestRate / 100);
     const paymentAmount = totalAmount / loan.totalPayments;
@@ -151,8 +190,13 @@ export default function LoanDetailsDialog({
           >
             Close
           </Button>
-          {loan.status !== "Completed" && (
-            <Button>Record Payment</Button>
+          {loan.status !== "Completed" && loan.paymentsMade < loan.totalPayments && (
+            <Button 
+              onClick={handleRecordPayment}
+              disabled={recordPaymentMutation.isPending}
+            >
+              {recordPaymentMutation.isPending ? "Processing..." : "Record Payment"}
+            </Button>
           )}
         </DialogFooter>
       </DialogContent>
