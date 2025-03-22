@@ -9,6 +9,9 @@ router.get('/', loansController.getAllLoans);
 // Get loan stats (active, overdue, completed)
 router.get('/stats', loansController.getLoanStats);
 
+// Get loans by status
+router.get('/by-status/:status', loansController.getLoansByStatus);
+
 // Get a specific loan
 router.get('/:id', loansController.getLoanById);
 

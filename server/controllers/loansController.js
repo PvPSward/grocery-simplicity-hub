@@ -1,4 +1,3 @@
-
 // In-memory database for this demo
 // In a real application, you would use a proper database like MongoDB or PostgreSQL
 let loans = [
@@ -90,6 +89,20 @@ exports.getLoanStats = (req, res) => {
     completedLoans,
     totalOutstanding
   });
+};
+
+// Get loans by status
+exports.getLoansByStatus = (req, res) => {
+  const status = req.params.status;
+  
+  if (!status || !['Active', 'Overdue', 'Completed'].includes(status)) {
+    return res.status(400).json({ 
+      message: "Invalid status. Status must be one of: Active, Overdue, Completed" 
+    });
+  }
+  
+  const filteredLoans = loans.filter(loan => loan.status === status);
+  res.status(200).json(filteredLoans);
 };
 
 // Get loan by ID
