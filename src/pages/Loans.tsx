@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import LoanDetailsDialog from "@/components/loans/LoanDetailsDialog";
 
-// Mock data for loans
+// Mock data for loans - ensuring status is one of the union types in Loan
 const loansMockData = [
   { 
     id: 1, 
@@ -21,7 +21,7 @@ const loansMockData = [
     amount: 500, 
     issuedDate: "2023-05-15", 
     dueDate: "2023-06-15", 
-    status: "Active",
+    status: "Active" as const,
     paymentsMade: 0,
     totalPayments: 2,
     interestRate: 5,
@@ -34,7 +34,7 @@ const loansMockData = [
     amount: 1200, 
     issuedDate: "2023-04-10", 
     dueDate: "2023-07-10", 
-    status: "Active",
+    status: "Active" as const,
     paymentsMade: 1,
     totalPayments: 3,
     interestRate: 5,
@@ -47,7 +47,7 @@ const loansMockData = [
     amount: 300, 
     issuedDate: "2023-03-20", 
     dueDate: "2023-04-20", 
-    status: "Overdue",
+    status: "Overdue" as const,
     paymentsMade: 0,
     totalPayments: 1,
     interestRate: 5,
@@ -60,7 +60,7 @@ const loansMockData = [
     amount: 850, 
     issuedDate: "2023-05-01", 
     dueDate: "2023-08-01", 
-    status: "Active",
+    status: "Active" as const,
     paymentsMade: 1,
     totalPayments: 3,
     interestRate: 5,
@@ -73,7 +73,7 @@ const loansMockData = [
     amount: 600, 
     issuedDate: "2023-02-15", 
     dueDate: "2023-05-15", 
-    status: "Completed",
+    status: "Completed" as const,
     paymentsMade: 3,
     totalPayments: 3,
     interestRate: 5,
