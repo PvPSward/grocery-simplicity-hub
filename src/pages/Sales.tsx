@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -7,8 +8,9 @@ import { ShoppingCart, Search, Plus, Minus, X, Printer, Save, BarcodeIcon } from
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { useState } from "react";
 import { cn } from "@/lib/utils";
+import PaymentMethodDialog, { PaymentData } from "@/components/sales/PaymentMethodDialog";
+import { toast } from "sonner";
 
 // Mock data for products
 const productsList = [
@@ -32,10 +34,22 @@ type CartItem = {
   barcode: string;
 };
 
+type CompletedSale = {
+  items: CartItem[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  paymentMethod: string;
+  paymentDetails: PaymentData;
+  timestamp: Date;
+};
+
 export default function Sales() {
   const [searchTerm, setSearchTerm] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [barcode, setBarcode] = useState("");
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [completedSales, setCompletedSales] = useState<CompletedSale[]>([]);
 
   const filteredProducts = productsList.filter(product => 
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -80,12 +94,45 @@ export default function Sales() {
     if (product) {
       addToCart(product);
       setBarcode("");
+    } else {
+      toast.error("Product not found");
     }
   };
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const tax = subtotal * 0.07; // 7% tax
   const total = subtotal + tax;
+
+  const handleCompleteSale = (paymentData: PaymentData) => {
+    // Record the completed sale
+    const sale: CompletedSale = {
+      items: [...cart],
+      subtotal,
+      tax,
+      total,
+      paymentMethod: paymentData.method,
+      paymentDetails: paymentData,
+      timestamp: new Date(),
+    };
+    
+    setCompletedSales([...completedSales, sale]);
+    
+    // Clear the cart
+    setCart([]);
+    
+    // Show success message
+    toast.success(`Sale completed successfully using ${paymentData.method}`);
+  };
+
+  const handlePrintReceipt = () => {
+    toast.info("Printing receipt...");
+    // In a real app, would connect to a printer here
+  };
+
+  const handleSaveSale = () => {
+    toast.info("Sale saved for later");
+    // In a real app, would save to local storage or database
+  };
 
   return (
     <div className="animate-fade-in">
@@ -253,11 +300,11 @@ export default function Sales() {
               </div>
               
               <div className="grid grid-cols-2 gap-2 mt-4">
-                <Button variant="outline" className="w-full" disabled={cart.length === 0}>
+                <Button variant="outline" className="w-full" disabled={cart.length === 0} onClick={handleSaveSale}>
                   <Save className="h-4 w-4 mr-2" />
                   Save
                 </Button>
-                <Button variant="outline" className="w-full" disabled={cart.length === 0}>
+                <Button variant="outline" className="w-full" disabled={cart.length === 0} onClick={handlePrintReceipt}>
                   <Printer className="h-4 w-4 mr-2" />
                   Print
                 </Button>
@@ -269,6 +316,7 @@ export default function Sales() {
                   cart.length === 0 ? "opacity-50 cursor-not-allowed" : "animate-pulse"
                 )}
                 disabled={cart.length === 0}
+                onClick={() => setPaymentDialogOpen(true)}
               >
                 Complete Sale
               </Button>
@@ -276,6 +324,13 @@ export default function Sales() {
           </Card>
         </div>
       </div>
+      
+      <PaymentMethodDialog 
+        open={paymentDialogOpen} 
+        onOpenChange={setPaymentDialogOpen}
+        totalAmount={total}
+        onComplete={handleCompleteSale}
+      />
     </div>
   );
 }
