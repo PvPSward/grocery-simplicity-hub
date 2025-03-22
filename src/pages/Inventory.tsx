@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, Search, Plus, BarcodeScan, Download, Upload, AlertTriangle } from "lucide-react";
+import { Package, Search, Plus, BarcodeIcon, Download, Upload, AlertTriangle } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
@@ -108,7 +108,7 @@ export default function Inventory() {
             </div>
             <div className="flex items-center gap-2">
               <div className="relative w-full md:w-[240px]">
-                <BarcodeScan className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <BarcodeIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Scan barcode..." className="pl-9" />
               </div>
             </div>

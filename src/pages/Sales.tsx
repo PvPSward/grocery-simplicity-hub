@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Input } from "@/components/ui/input";
-import { ShoppingCart, Search, Plus, Minus, X, Printer, Save, BarcodeScan } from "lucide-react";
+import { ShoppingCart, Search, Plus, Minus, X, Printer, Save, BarcodeIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -109,7 +109,7 @@ export default function Sales() {
                   />
                 </div>
                 <form onSubmit={handleBarcodeSubmit} className="relative flex-1">
-                  <BarcodeScan className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <BarcodeIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
                     placeholder="Scan barcode..." 
                     className="pl-9"
