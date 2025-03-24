@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -11,6 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import PaymentMethodDialog, { PaymentData } from "@/components/sales/PaymentMethodDialog";
 import { toast } from "sonner";
+import { useReactToPrint } from "react-to-print";
+import ReceiptPrint from "@/components/sales/ReceiptPrint";
 
 // Mock data for products
 const productsList = [
@@ -50,6 +51,30 @@ export default function Sales() {
   const [barcode, setBarcode] = useState("");
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [completedSales, setCompletedSales] = useState<CompletedSale[]>([]);
+  const [currentReceipt, setCurrentReceipt] = useState<CompletedSale | null>(null);
+  const receiptRef = useRef<HTMLDivElement>(null);
+
+  const handlePrintReceipt = useReactToPrint({
+    content: () => receiptRef.current,
+    onBeforeGetContent: () => {
+      // Create a receipt for the current cart
+      setCurrentReceipt({
+        items: [...cart],
+        subtotal,
+        tax,
+        total,
+        paymentMethod: "Current Sale",
+        paymentDetails: {},
+        timestamp: new Date(),
+      });
+      return Promise.resolve();
+    },
+    onAfterPrint: () => {
+      toast.success("Receipt printed successfully");
+    },
+    documentTitle: "Receipt",
+    removeAfterPrint: true,
+  });
 
   const filteredProducts = productsList.filter(product => 
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -122,11 +147,6 @@ export default function Sales() {
     
     // Show success message
     toast.success(`Sale completed successfully using ${paymentData.method}`);
-  };
-
-  const handlePrintReceipt = () => {
-    toast.info("Printing receipt...");
-    // In a real app, would connect to a printer here
   };
 
   const handleSaveSale = () => {
@@ -331,6 +351,23 @@ export default function Sales() {
         totalAmount={total}
         onComplete={handleCompleteSale}
       />
+
+      {/* Hidden receipt for printing */}
+      <div style={{ display: "none" }}>
+        <div ref={receiptRef}>
+          {currentReceipt && (
+            <ReceiptPrint
+              items={currentReceipt.items}
+              subtotal={currentReceipt.subtotal}
+              tax={currentReceipt.tax}
+              total={currentReceipt.total}
+              paymentMethod={currentReceipt.paymentMethod}
+              paymentDetails={currentReceipt.paymentDetails}
+              timestamp={currentReceipt.timestamp}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }
