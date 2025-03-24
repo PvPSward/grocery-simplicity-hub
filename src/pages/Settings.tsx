@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -7,11 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Store, User, Receipt, Printer, Bell, Cog, Database, Save } from "lucide-react";
+import { Store, User, Receipt, Printer, Bell, Cog, Database, Save, FileText } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function Settings() {
+  const [customWidth, setCustomWidth] = useState("48");
+  const [customHeight, setCustomHeight] = useState("3276");
+  
+  const handleSaveBillSize = () => {
+    toast.success("Bill size saved successfully");
+  };
+
   return (
     <div className="animate-fade-in">
       <SectionHeader 
@@ -35,6 +43,10 @@ export default function Settings() {
                 <TabsTrigger value="receipt" className="w-full justify-start text-left px-3 data-[state=active]:bg-accent h-9">
                   <Receipt className="h-4 w-4 mr-2" />
                   Receipt Settings
+                </TabsTrigger>
+                <TabsTrigger value="bill-size" className="w-full justify-start text-left px-3 data-[state=active]:bg-accent h-9">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Bill Size
                 </TabsTrigger>
                 <TabsTrigger value="printer" className="w-full justify-start text-left px-3 data-[state=active]:bg-accent h-9">
                   <Printer className="h-4 w-4 mr-2" />
@@ -205,6 +217,84 @@ export default function Settings() {
                     <Button>
                       <Save className="h-4 w-4 mr-2" />
                       Save Receipt Settings
+                    </Button>
+                  </div>
+                </CardContent>
+              </TabsContent>
+              
+              <TabsContent value="bill-size" className="m-0">
+                <CardHeader>
+                  <CardTitle>Bill Size Settings</CardTitle>
+                  <CardDescription>Configure bill dimensions</CardDescription>
+                </CardHeader>
+                <CardContent className="pb-6 space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Predefined Bill Sizes</Label>
+                        <div className="text-sm text-muted-foreground">Common bill size formats</div>
+                      </div>
+                      <Switch defaultChecked />
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="space-y-2">
+                      <Label>Default Bill Size</Label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <Button variant="outline" className="justify-start">A4 (210 x 297 mm)</Button>
+                        <Button variant="outline" className="justify-start">A5 (148 x 210 mm)</Button>
+                        <Button variant="outline" className="justify-start">58 mm (Thermal)</Button>
+                        <Button variant="outline" className="justify-start">80 mm (Thermal)</Button>
+                        <Button variant="outline" className="justify-start bg-accent">48 x 3276 mm (Custom)</Button>
+                      </div>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div className="space-y-2">
+                      <Label>Custom Bill Size</Label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="width">Width (mm)</Label>
+                          <Input 
+                            id="width" 
+                            type="number" 
+                            value={customWidth} 
+                            onChange={(e) => setCustomWidth(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="height">Height (mm)</Label>
+                          <Input 
+                            id="height" 
+                            type="number" 
+                            value={customHeight} 
+                            onChange={(e) => setCustomHeight(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between pt-4">
+                      <div className="space-y-0.5">
+                        <Label>Bill Preview</Label>
+                        <div className="text-sm text-muted-foreground">
+                          Current size: <strong>{customWidth} x {customHeight} mm</strong>
+                        </div>
+                      </div>
+                      <div className="border rounded h-24 w-12 relative overflow-hidden">
+                        <div className="absolute inset-1 bg-muted-foreground/10 flex items-center justify-center text-xs text-muted-foreground">
+                          {customWidth}x{customHeight}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end">
+                    <Button onClick={handleSaveBillSize}>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Bill Size
                     </Button>
                   </div>
                 </CardContent>
