@@ -188,30 +188,38 @@ exports.deleteLoan = (req, res) => {
 
 // Record a payment for a loan
 exports.recordPayment = (req, res) => {
-  const loanId = parseInt(req.params.id);
-  const { amount } = req.body;
-  
-  const loanIndex = loans.findIndex(loan => loan.id === loanId);
-  
-  if (loanIndex === -1) {
-    return res.status(404).json({ message: "Loan not found" });
+  try {
+    const loanId = parseInt(req.params.id);
+    
+    // Find the loan
+    const loanIndex = loans.findIndex(loan => loan.id === loanId);
+    
+    if (loanIndex === -1) {
+      return res.status(404).json({ message: "Loan not found" });
+    }
+    
+    const loan = loans[loanIndex];
+    
+    // Check if all payments have already been made
+    if (loan.paymentsMade >= loan.totalPayments) {
+      return res.status(400).json({ message: "All payments for this loan have already been made" });
+    }
+    
+    // Increment the payments made
+    loan.paymentsMade += 1;
+    
+    // Update loan status if all payments have been made
+    if (loan.paymentsMade === loan.totalPayments) {
+      loan.status = "Completed";
+    }
+    
+    // Return success response
+    res.status(200).json({
+      message: "Payment recorded successfully",
+      loan
+    });
+  } catch (error) {
+    console.error("Error recording payment:", error);
+    res.status(500).json({ message: "Server error recording payment" });
   }
-  
-  const loan = loans[loanIndex];
-  
-  if (loan.paymentsMade >= loan.totalPayments) {
-    return res.status(400).json({ message: "All payments for this loan have already been made" });
-  }
-  
-  loan.paymentsMade += 1;
-  
-  // Update loan status if all payments have been made
-  if (loan.paymentsMade === loan.totalPayments) {
-    loan.status = "Completed";
-  }
-  
-  res.status(200).json({
-    message: "Payment recorded successfully",
-    loan
-  });
 };
