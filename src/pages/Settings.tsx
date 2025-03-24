@@ -246,6 +246,7 @@ export default function Settings() {
                         <Button variant="outline" className="justify-start">A5 (148 x 210 mm)</Button>
                         <Button variant="outline" className="justify-start">58 mm (Thermal)</Button>
                         <Button variant="outline" className="justify-start">80 mm (Thermal)</Button>
+                        <Button variant="outline" className="justify-start">72 x 129 mm (Print)</Button>
                         <Button variant="outline" className="justify-start bg-accent">48 x 3276 mm (Custom)</Button>
                       </div>
                     </div>
